@@ -100,17 +100,23 @@ class RequestHandler(object):
         kw = None
         if self._has_var_kw_arg or self._has_named_kw_args or self._required_kw_args:
             if request.method == 'POST':
+                #如果request header里缺少content_type信息
                 if not request.content_type:
                     return web.HTTPBadRequest('Missing Content-Type.')
                 ct = request.content_type.lower()
+                #如果request上传的是json对象
                 if ct.startswith('application/json'):
                     params = await request.json()
                     if not isinstance(params, dict):
                         return web.HTTPBadRequest('JSON body must be object.')
+                    #正常情况下,params会直接获得一个python字典对象(可参见mail.163.com等访问)
                     kw = params
+                #如果request上传的是键值对模式，这个也支持
                 elif ct.startswith('application/x-www-form-urlencoded') or ct.startswith('multipart/form-data'):
                     params = await request.post()
+                    #如果是键值对，这里写的挺好。直接将params作为非关键参数传入dict，kw最终得到的还是一个dict
                     kw = dict(**params)
+                #如果request上传的是其他格式则不支持。
                 else:
                     return web.HTTPBadRequest('Unsupported Content-Type: %s' % request.content_type)
             if request.method == 'GET':
